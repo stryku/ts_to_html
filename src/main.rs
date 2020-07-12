@@ -9,8 +9,9 @@ struct CliArgs {
     output_dir: std::path::PathBuf,
 }
 
-fn gather_pdf_paths(
+fn gather_paths_with_extension(
     dir: &std::path::PathBuf,
+    ext: &str,
 ) -> Result<Vec<std::path::PathBuf>, Box<dyn std::error::Error>> {
     let files = std::fs::read_dir(&dir)?;
 
@@ -23,8 +24,8 @@ fn gather_pdf_paths(
             continue;
         }
 
-        if let Some(ext) = path.extension() {
-            if ext == "pdf" {
+        if let Some(path_ext) = path.extension() {
+            if path_ext == ext {
                 pdf_paths.push(path.clone());
             }
         };
@@ -33,27 +34,28 @@ fn gather_pdf_paths(
     return Ok(pdf_paths);
 }
 
-fn extract_ts_number_from_pdf_path(path: &std::path::PathBuf) -> Option<&str> {
+fn extract_ts_number_from_file_path(path: &std::path::PathBuf) -> Option<&str> {
+    // Filename looks like: TSnumber-version.ext
     let filename = path.file_stem().unwrap().to_str().unwrap();
 
-    let split = filename.split("_").collect::<Vec<&str>>();
-    if split.len() < 2 {
+    let ts_number_and_version = filename.split("-").collect::<Vec<&str>>();
+    if ts_number_and_version.len() < 2 {
         return None;
     }
 
-    let ts_number_and_version = split[1];
-    let ts_number_and_version_split = ts_number_and_version.split("v").collect::<Vec<&str>>();
-
-    if ts_number_and_version_split.len() < 2 {
-        return None;
-    }
-
-    return Some(&ts_number_and_version_split[0][1..]);
+    return Some(&ts_number_and_version[0]);
 }
 
-fn pdf_to_text(path: &std::path::PathBuf) -> Option<String> {
-    let output = std::process::Command::new("pdftotext")
-        .args(&["-layout", path.to_str().unwrap(), "tmp.txt"])
+fn docx_to_html(path: &std::path::PathBuf) -> Option<String> {
+    let output_file_name = format!("{}.html", path.file_stem().unwrap().to_string_lossy());
+
+    let output = std::process::Command::new("lowriter")
+        .args(&[
+            "--convert-to",
+            "html",
+            path.to_str().unwrap(),
+            &output_file_name,
+        ])
         .output();
 
     match output {
@@ -63,7 +65,7 @@ fn pdf_to_text(path: &std::path::PathBuf) -> Option<String> {
         _ => {}
     }
 
-    let result = std::fs::read_to_string("tmp.txt");
+    let result = std::fs::read_to_string(&output_file_name);
     match result {
         Ok(content) => Some(content),
         Err(_) => None,
@@ -125,39 +127,41 @@ fn table_start_line_to_html(line: &str) -> String {
     return format!("<b><pre id=\"{}\">{}</pre></b>", table_id, line);
 }
 
-fn text_to_html(content: &String) -> Option<String> {
-    let mut result_body_content = String::new();
+fn html_to_better_html(content: &String) -> Option<String> {
+    return Some(content.clone());
 
-    for line in content.lines() {
-        if is_toc_line(line) {
-            result_body_content.push_str(&toc_line_to_html(line));
-        } else if is_clause_start_line(line) {
-            result_body_content.push_str(&clause_start_line_to_html(line));
-        } else if is_table_start_line(line) {
-            result_body_content.push_str(&table_start_line_to_html(line));
-        } else {
-            result_body_content.push_str(&regular_line_to_html(line));
-        }
-    }
+    // let mut result_body_content = String::new();
 
-    return Some(format!(
-        "<html><head></head><body>{}</body>",
-        result_body_content
-    ));
+    // for line in content.lines() {
+    //     if is_toc_line(line) {
+    //         result_body_content.push_str(&toc_line_to_html(line));
+    //     } else if is_clause_start_line(line) {
+    //         result_body_content.push_str(&clause_start_line_to_html(line));
+    //     } else if is_table_start_line(line) {
+    //         result_body_content.push_str(&table_start_line_to_html(line));
+    //     } else {
+    //         result_body_content.push_str(&regular_line_to_html(line));
+    //     }
+    // }
+
+    // return Some(format!(
+    //     "<html><head></head><body>{}</body>",
+    //     result_body_content
+    // ));
 }
 
-fn handle_pdf(path: &std::path::PathBuf) {
-    let text_content = pdf_to_text(path);
+fn handle_file(path: &std::path::PathBuf) {
+    let text_content = docx_to_html(path);
     if text_content.is_none() {
         return;
     }
 
-    let ts_number = &extract_ts_number_from_pdf_path(path);
+    let ts_number = &extract_ts_number_from_file_path(path);
     if ts_number.is_none() {
         return;
     }
 
-    let html_content = text_to_html(&text_content.unwrap());
+    let html_content = html_to_better_html(&text_content.unwrap());
 
     std::fs::write("output.html", &html_content.unwrap());
 }
@@ -170,10 +174,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.output_dir.to_string_lossy()
     );
 
-    let pdf_paths = gather_pdf_paths(&args.input_dir)?;
+    let pdf_paths = gather_paths_with_extension(&args.input_dir, "docx")?;
     for p in pdf_paths {
         println!("{}", p.to_string_lossy());
-        handle_pdf(&p);
+        handle_file(&p);
     }
 
     Ok(())
