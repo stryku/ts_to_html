@@ -169,8 +169,13 @@ fn better_toc(content: &String) -> String {
 fn add_clauses_ids(content: &String) -> String {
     // let re = Regex::new(r"(?s:<h(?P<h_value>\d)\s(?P<h_attributes>.*?)>(?P<h_content>.+</a>\s*(?P<clause_no>[\d.]+)\s.+)</h\d>)").unwrap();
     // let re =Regex::new(r"(?s:(?P<whole_h><h(?P<h_value>\d) (?P<h_attributes>[.^>]*)><a.*+?></a><a.*+?></a><a.*+?></a>.*?(?P<clause_no>[\d.]+)\s+[a-zA-Z\s]+.?</h\d>))").unwrap();
+    // let re = Regex::new(
+    //     r#"(?s:(?P<whole_h><h(?P<h_value>\d) (?P<h_attributes>[(class="western")(lang="x\-none" class="western")]+)>(?P<h_content>(<a name="_Toc\d+"></a>){3}\s*(?P<clause_no>[\d\.]+)\t.+)</h\d>))"#,
+    // )
+    // .unwrap();
+
     let re = Regex::new(
-        r#"(?s:(?P<whole_h><h(?P<h_value>\d) (?P<h_attributes>[(class="western")(lang="x\-none" class="western")]+)>(?P<h_content>(<a name="_Toc\d+"></a>){3}\s*(?P<clause_no>[\d.]+)\t[a-zA-z\s]+)</h\d>))"#,
+        r#"(?s:(?P<whole_h><h(?P<h_value>\d) (?P<h_attributes>[(class="western")(lang="x\-none" class="western")]+)>(?P<h_content>(<a name="_Toc\d+"></a>){3}\s*(?P<clause_no>[\d\.]+))))"#,
     )
     .unwrap();
 
@@ -190,13 +195,32 @@ fn add_clauses_ids(content: &String) -> String {
 
     return String::from(re.replace_all(
         content,
-        "<h$h_value $h_attributes id=\"$clause_no\">$h_content</h$h_value>",
+        "<h$h_value $h_attributes id=\"$clause_no\">$h_content",
     ));
+}
+
+fn add_clauses_references(content: &String) -> String {
+    let re =
+        Regex::new(r#"(?P<clause_content>clause&nbsp;(?P<clause_no>[\d\.\-a-z]*\d))"#).unwrap();
+
+    return String::from(re.replace_all(content, "<a href=\"#$clause_no\">$clause_content</a>"));
+
+    // println!("Captures");
+    // for cap in re.captures_iter(content) {
+    //     println!("__CLAUSE: {}\n", &cap["clause_no"]);
+    //     // println!(
+    //     //     "__H VALUE: {}, __ATTR: {}, __CLAUSE: {}, __CAPTURE: {}\n",
+    //     //     &cap["h_value"], &cap["h_attributes"], &cap["clause_no"], &cap["whole_h"]
+    //     // );
+    // }
+
+    // return content.clone();
 }
 
 fn html_to_better_html(content: &String) -> Option<String> {
     let mut better_content = better_toc(&content);
     better_content = add_clauses_ids(&better_content);
+    better_content = add_clauses_references(&better_content);
     return Some(better_content);
 
     // let mut result_body_content = String::new();
