@@ -1,3 +1,5 @@
+mod source_parser;
+
 use regex::Regex;
 use structopt::StructOpt;
 
