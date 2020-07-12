@@ -127,8 +127,47 @@ fn table_start_line_to_html(line: &str) -> String {
     return format!("<b><pre id=\"{}\">{}</pre></b>", table_id, line);
 }
 
+fn better_toc(content: &String) -> String {
+    let begin_pattern = r#"<div id="Table of Contents1" dir="ltr">"#;
+    let toc_begin = content.find(&begin_pattern);
+    if toc_begin.is_none() {
+        return content.clone();
+    }
+    let toc_content_begin = toc_begin.unwrap() + begin_pattern.len();
+
+    let end_pattern = r#"</div>"#;
+    let toc_end = content.find(&end_pattern);
+    if toc_end.is_none() {
+        return content.clone();
+    }
+    let toc_content_end = toc_end.unwrap();
+
+    let toc = &content[toc_content_begin..toc_content_end];
+
+    let re = Regex::new(r"(?P<paragraph>(?s:<p.+>.*<font.+>.*?(?P<clause_no>[\d.]+).*<font.+))")
+        .unwrap();
+
+    let paragraphs = toc.split("</p>").collect::<Vec<&str>>();
+    let mut toc_with_links = String::new();
+    for p in paragraphs {
+        if re.is_match(p) {
+            toc_with_links
+                .push_str(&re.replace_all(p, "<a href=\"#$clause_no\">$paragraph</p></a>"));
+        } else {
+            toc_with_links.push_str(&format!("{}</p>", &p))
+        }
+    }
+
+    return format!(
+        "{}{}{}",
+        &content[..toc_content_begin],
+        toc_with_links,
+        &content[toc_content_end..]
+    );
+}
+
 fn html_to_better_html(content: &String) -> Option<String> {
-    return Some(content.clone());
+    return Some(better_toc(&content));
 
     // let mut result_body_content = String::new();
 
