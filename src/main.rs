@@ -1,3 +1,4 @@
+mod source_modifier;
 mod source_parser;
 
 use regex::Regex;
@@ -219,11 +220,57 @@ fn add_clauses_references(content: &String) -> String {
     // return content.clone();
 }
 
-fn html_to_better_html(content: &String) -> Option<String> {
-    let mut better_content = better_toc(&content);
-    better_content = add_clauses_ids(&better_content);
-    better_content = add_clauses_references(&better_content);
-    return Some(better_content);
+fn extract_clause_no_from_toc_entry(toc_entry: &str) -> Option<String> {
+    let mut parser = source_parser::SourceParser::new(&toc_entry);
+
+    parser.goto_end_of("<p");
+    parser.goto_end_of(">");
+    parser.goto_end_of("<font");
+    let is_clause_reference = parser.is_a_before_b("<font", "</font");
+    if !is_clause_reference {
+        return None;
+    }
+
+    parser.goto_end_of("<font");
+    parser.goto_end_of(">");
+    return Some(String::from(
+        parser.get_content_til_begin_of("<font").unwrap().trim(),
+    ));
+}
+
+fn better_toc2(content: &String) -> String {
+    let mut modifier = source_modifier::SourceModifier::new(&content);
+
+    println!("----------------1");
+    modifier.copy_til_end_of(r#"<div id="Table of Contents1" dir="ltr">"#);
+
+    while modifier.is_a_before_b("<p", "</div>") {
+        println!("----------------2");
+        modifier.copy_til_begin_of("<p");
+
+        let p_content = modifier.get_content_til_end_of("</p>").unwrap();
+        if let Some(clause_no) = extract_clause_no_from_toc_entry(&p_content) {
+            println!("Handling clause {}", &clause_no);
+            modifier.push_str(&format!("<a href\"{}\">", clause_no));
+            modifier.copy_til_end_of("</p>");
+            modifier.push_str("</a>");
+        } else {
+            println!("Cupying p");
+            modifier.copy_til_end_of("</p>");
+        }
+    }
+
+    return modifier.get_result().clone();
+}
+
+fn html_to_better_html(content: &String) -> String {
+    let mut result = better_toc2(content);
+    return result;
+
+    // let mut better_content = better_toc(&content);
+    // better_content = add_clauses_ids(&better_content);
+    // better_content = add_clauses_references(&better_content);
+    // return Some(better_content);
 
     // let mut result_body_content = String::new();
 
@@ -258,7 +305,7 @@ fn handle_file(path: &std::path::PathBuf) {
 
     let html_content = html_to_better_html(&text_content.unwrap());
 
-    std::fs::write("output.html", &html_content.unwrap());
+    std::fs::write("output.html", &html_content);
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
