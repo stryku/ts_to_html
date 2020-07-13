@@ -22,6 +22,10 @@ impl SourceModifier<'_> {
         self.result.push_str(omitted)
     }
 
+    pub fn copy_til_end_of_source(&mut self) {
+        self.result.push_str(self.parser.get_content_til_end_of_source());
+    }
+
     pub fn copy_til_begin_of(&mut self, pattern: &str) {
         let omitted = self
             .parser

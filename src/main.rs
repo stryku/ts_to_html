@@ -225,13 +225,17 @@ fn extract_clause_no_from_toc_entry(toc_entry: &str) -> Option<String> {
 
     parser.goto_end_of("<p");
     parser.goto_end_of(">");
-    parser.goto_end_of("<font");
-    let is_clause_reference = parser.is_a_before_b("<font", "</font");
-    if !is_clause_reference {
+    if !parser.is_a_before_b("<font", "</p>") {
         return None;
     }
 
     parser.goto_end_of("<font");
+
+    let is_clause_reference = parser.is_a_before_b( "<font", "</p>") && parser.is_a_before_b("<font", "</font");
+    if !is_clause_reference {
+        return None;
+    }
+
     parser.goto_end_of(">");
     return Some(String::from(
         parser.get_content_til_begin_of("<font").unwrap().trim(),
@@ -251,7 +255,7 @@ fn better_toc2(content: &String) -> String {
         let p_content = modifier.get_content_til_end_of("</p>").unwrap();
         if let Some(clause_no) = extract_clause_no_from_toc_entry(&p_content) {
             println!("Handling clause {}", &clause_no);
-            modifier.push_str(&format!("<a href\"{}\">", clause_no));
+            modifier.push_str(&format!("<a href=\"{}\">", clause_no));
             modifier.copy_til_end_of("</p>");
             modifier.push_str("</a>");
         } else {
@@ -260,6 +264,7 @@ fn better_toc2(content: &String) -> String {
         }
     }
 
+    modifier.copy_til_end_of_source();
     return modifier.get_result().clone();
 }
 

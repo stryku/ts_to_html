@@ -15,6 +15,10 @@ impl SourceParser<'_> {
         return self.current_pos;
     }
 
+    pub fn get_content_til_end_of_source(&self) -> &str {
+        return &self.source[self.current_pos..]
+    }
+
     pub fn is_a_before_b(&self, a: &str, b: &str) -> bool {
         let a_pos = self.find_pattern_pos(&a);
         let b_pos = self.find_pattern_pos(&b);
