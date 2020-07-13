@@ -50,7 +50,7 @@ fn extract_ts_number_from_file_path(path: &std::path::PathBuf) -> Option<&str> {
 }
 
 fn docx_to_html(path: &std::path::PathBuf) -> Option<String> {
-    let output_file_name = format!("{}.html", path.file_stem().unwrap().to_string_lossy());
+    let output_file_name = format!("tmp/{}.html", path.file_stem().unwrap().to_string_lossy());
 
     let output = std::process::Command::new("lowriter")
         .args(&[
@@ -58,6 +58,8 @@ fn docx_to_html(path: &std::path::PathBuf) -> Option<String> {
             "html",
             path.to_str().unwrap(),
             &output_file_name,
+            "--outdir",
+            "tmp"
         ])
         .output();
 

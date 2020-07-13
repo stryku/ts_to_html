@@ -41,7 +41,7 @@ impl SourceModifier<'_> {
         }
 
         let content = self.parser.advance_for_count_and_get_omitted_source(to_copy);
-        self.result.push_str(content)
+        self.result.push_str(content);
     }
 
     pub fn is_a_before_b(&self, a: &str, b: &str) -> bool {
