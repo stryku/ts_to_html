@@ -321,12 +321,18 @@ fn add_clauses_ids2(content:&String) ->String {
     return modifier.get_result().clone();
 }
 
-fn remove_hard_spaces(content:&String) ->String {
+fn remove_hard_spaces(content:&String) -> String {
     return content.replace("&nbsp;", " ")
+}
+
+fn remove_span_language_en_gb(content:&String) -> String {
+    let re = Regex::new(r#"(?s:<span lang="en-[A-Z]{2}">(?P<span_content>(.*?))</span>)"#).unwrap();
+    return String::from(re.replace_all(content, "$span_content"));
 }
 
 fn html_to_better_html(content: &String) -> String {
     let mut result = remove_hard_spaces(content);
+    result = remove_span_language_en_gb(&result);
     result = better_toc2(&result);
     result = add_clauses_ids2(&result);
     return result;
