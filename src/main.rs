@@ -321,9 +321,14 @@ fn add_clauses_ids2(content:&String) ->String {
     return modifier.get_result().clone();
 }
 
+fn remove_hard_spaces(content:&String) ->String {
+    return content.replace("&nbsp;", " ")
+}
+
 fn html_to_better_html(content: &String) -> String {
-    let mut result = better_toc2(content);
-     result = add_clauses_ids2(&result);
+    let mut result = remove_hard_spaces(content);
+    result = better_toc2(&result);
+    result = add_clauses_ids2(&result);
     return result;
 
     // let mut better_content = better_toc(&content);
