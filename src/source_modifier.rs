@@ -34,8 +34,22 @@ impl SourceModifier<'_> {
         self.result.push_str(omitted)
     }
 
+    pub fn copy_chars_count(&mut self,count:usize) {
+        let to_copy = std::cmp::min(count, self.parser.get_source_len() - self.parser.get_current_pos());
+        if to_copy == 0 {
+            return
+        }
+
+        let content = self.parser.advance_for_count_and_get_omitted_source(to_copy);
+        self.result.push_str(content)
+    }
+
     pub fn is_a_before_b(&self, a: &str, b: &str) -> bool {
         self.parser.is_a_before_b(a, b)
+    }
+
+    pub fn is_before_end(&self, pattern:&str) ->bool {
+        self.parser.is_before_end(pattern)
     }
 
     pub fn goto_begin_of_and_get_omitted_content(&mut self, pattern: &str) -> Option<&str> {

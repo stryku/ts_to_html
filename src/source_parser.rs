@@ -19,6 +19,12 @@ impl SourceParser<'_> {
         return &self.source[self.current_pos..]
     }
 
+    pub fn advance_for_count_and_get_omitted_source(&mut self, count:usize) -> &str{
+        let old_pos = self.current_pos;
+        self.current_pos += count;
+        return &self.source[old_pos..self.current_pos];
+    }
+
     pub fn is_a_before_b(&self, a: &str, b: &str) -> bool {
         let a_pos = self.find_pattern_pos(&a);
         let b_pos = self.find_pattern_pos(&b);
@@ -32,6 +38,10 @@ impl SourceParser<'_> {
         }
 
         return a_pos.unwrap() < b_pos.unwrap();
+    }
+
+    pub fn is_before_end(&self, pattern:&str) ->bool {
+        !self.find_pattern_pos(&pattern).is_none()
     }
 
     pub fn goto_begin_of(&mut self, pattern: &str) {
@@ -86,6 +96,10 @@ impl SourceParser<'_> {
 
     pub fn is_at_end(&self) -> bool {
         return self.get_current_pos() == self.source.len();
+    }
+
+    pub fn get_source_len(&self) -> usize {
+        self.source.len()
     }
 }
 

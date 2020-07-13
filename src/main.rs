@@ -255,7 +255,7 @@ fn better_toc2(content: &String) -> String {
         let p_content = modifier.get_content_til_end_of("</p>").unwrap();
         if let Some(clause_no) = extract_clause_no_from_toc_entry(&p_content) {
             println!("Handling clause {}", &clause_no);
-            modifier.push_str(&format!("<a href=\"{}\">", clause_no));
+            modifier.push_str(&format!("<a href=\"#{}\">", clause_no));
             modifier.copy_til_end_of("</p>");
             modifier.push_str("</a>");
         } else {
@@ -268,8 +268,60 @@ fn better_toc2(content: &String) -> String {
     return modifier.get_result().clone();
 }
 
+fn extract_clause_no_from_h_entry(h_entry:&str) ->Option<String> {
+    let mut parser = source_parser::SourceParser::new(&h_entry);
+
+    parser.goto_end_of(">");
+
+    while parser.is_a_before_b("<a","</h") {
+        parser.goto_end_of("</a>");
+    }
+
+    let content_til_end = parser.get_content_til_begin_of("</h");
+    if content_til_end.is_none(){
+        return None
+    }
+
+    let trimmed_content = content_til_end.unwrap().trim();
+
+    let is_clause_h = trimmed_content.chars().nth(0).unwrap().is_digit(10);
+    if !is_clause_h {
+        return None
+    }
+
+    let split = trimmed_content.split_whitespace().collect::<Vec<&str>>();
+    if split.len() < 2 {
+        return None
+    }
+
+    return Some(String::from(split[0]));
+}
+
+fn add_clauses_ids2(content:&String) ->String {
+    let mut modifier = source_modifier::SourceModifier::new(&content);
+
+    while modifier.is_before_end("<h")  {
+        modifier.copy_til_begin_of("<h");
+
+        let h_content = modifier.get_content_til_end_of("</h").unwrap();
+        if let Some(clause_no) = extract_clause_no_from_h_entry(&h_content) {
+            modifier.copy_til_end_of("<h");
+            modifier.copy_chars_count(1);
+            modifier.push_str(&format!(" id=\"{}\" ", clause_no));
+            modifier.copy_til_end_of("</h");
+        }
+        else {
+            modifier.copy_til_end_of("</h");
+        }
+    }
+
+    modifier.copy_til_end_of_source();
+    return modifier.get_result().clone();
+}
+
 fn html_to_better_html(content: &String) -> String {
     let mut result = better_toc2(content);
+     result = add_clauses_ids2(&result);
     return result;
 
     // let mut better_content = better_toc(&content);
