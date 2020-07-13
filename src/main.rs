@@ -330,11 +330,38 @@ fn remove_span_language_en_gb(content:&String) -> String {
     return String::from(re.replace_all(content, "$span_content"));
 }
 
+fn add_clause_references(content:&String)-> String {
+    /*
+    TS 23.501 [2] clause 5.4.4b
+    TS 23.501 [2] clause 5.15.7.2
+    TS 23.501 [2], clause 5.4.4.1
+    TS 23.501 [2] clause 5.4.4b
+    23.501 [2] clause 5.6.3
+    TS 29.502 [36]
+    clause 5.15.5.3 of TS 23.501 [2]
+    clause 4.4
+    in 4.3.3.2
+    Clause 4.3
+    */
+
+    // TS\s+\d{2}\.\d{3}(\s+\[\d+\])?,?\s+clause\s+[\d\.a-z\-]+
+    // \d{2}\.\d{3}(\s+\[\d+\])?,?\s+clause\s+[\d\.a-z\-]+
+    // clause\s+[\d\.a-z\-]+\s+of\s+TS\s+\d{2}\.\d{3}(\s+\[\d+\])?
+
+    // (\d{2}\.\d{3}(\s+\[\d{1,2}\])?,?\s+)?(in\s+)?([Cc]lause\s+)?[\d\.\-]+[\da-z](\s+of\s+TS\s+\d{2}\.\d{3}(\s+\[\d+\])?)?
+
+    // let re = Regex::new(r#"(?s:((?P<ts_number_1>(\d{2}\.\d{3}))(\s+\[\d{1,2}\])?,?\s+)?(in\s+)?([Cc]lause\s+)?(?P<clause_no>([\d\.\-]+[\da-z]))(\s+of\s+TS\s+(?P<ts_number_2>(\d{2}\.\d{3})(\s+\[\d+\])?)?))"#).unwrap();
+    let re = Regex::new(r#"(?s:[Cc]lause\s+(?P<clause_no>([\d\.]+[\da-z]?)))"#).unwrap();
+
+    return String::from(re.replace_all(content, "<a href=\"#$clause_no\"></a>"));
+}
+
 fn html_to_better_html(content: &String) -> String {
     let mut result = remove_hard_spaces(content);
     result = remove_span_language_en_gb(&result);
     result = better_toc2(&result);
     result = add_clauses_ids2(&result);
+    result = add_clause_references(&result);
     return result;
 
     // let mut better_content = better_toc(&content);
