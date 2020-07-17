@@ -16,14 +16,14 @@ pub fn html_to_better_html(content: &String) -> String {
 
 fn add_clause_references(content: &str) -> String {
     let res = vec![
-        // TS 23.501 [2], clause 5.4.4.1b
-        r#"(TS\s+)?(?P<ts_no_1>(\d{2}\.\d{3}))\s+\[\d+\],?\s+[cC]lause\s+(?P<clause_no_1>(\d[\.\da-z]*[\da-z]))"#,
-        // clause 5.3.3.1 (Some text) in TS 23.401 [13]
-        r#"[cC]lause\s+(?P<clause_no_2>(\d[\.\da-z]*[\da-z]))\s+(\([^<^>.]+\)\s+)?((of)|(in))\s+TS\s+(?P<ts_no_2>(\d{2}\.\d{3}))\s+\[\d+\]"#,
-        // in clause 4.4
-        r#"(((in)|(see))\s+)?[cC]lause\s+(?P<clause_no_3>(\d[\.\da-z]*[\da-z]))"#,
-        // in 4.3.3.2
-        r#"((in)|(see))\s+(?P<clause_no_4>(\d[\.\da-z]*[\da-z]))"#,
+        // TS 23.501 [2], clause 5.4.4.1b // the comma is optional
+        r#"(TS\s+)?(?P<ts_no_1>(\d{2}\.\d{3}))\s+\[\d+\],?\s+[cC]lause\s+(?P<clause_no_0>(\d[\.\da-z]*[\da-z]))"#,
+        // clause 5.3.3.1 (Some text) in TS 23.401 [13] // "(Some text)" is optional, "in" can be "of"
+        r#"[cC]lause\s+(?P<clause_no_1>(\d[\.\da-z]*[\da-z]))\s+(\([^<^>.]+\)\s+)?((of)|(in))\s+TS\s+(?P<ts_no_2>(\d{2}\.\d{3}))\s+\[\d+\]"#,
+        // in clause 4.4 // "in" can be "see" and is optional
+        r#"(((in)|(see))\s+)?[cC]lause\s+(?P<clause_no_2>(\d[\.\da-z]*[\da-z]))"#,
+        // in 4.3.3.2 // "in" can be "see" and is mandatory
+        r#"((in)|(see))\s+(?P<clause_no_3>(\d[\.\da-z]*[\da-z]))"#,
     ];
 
     let joined = res.join(")|(");
@@ -62,7 +62,7 @@ fn add_clause_references(content: &str) -> String {
             };
 
             let clause_getter = || {
-                for name_no in 1..res.len() {
+                for name_no in 0..res.len() {
                     let group_name = format!("clause_no_{}", name_no);
                     if let Some(clause_no) = cap.name(&group_name) {
                         return Some(clause_no);
@@ -288,5 +288,19 @@ fn test_add_clause_links_clause() {
 fn test_add_clause_links_clause_capital() {
     let source = "Foo Clause 11.2.33, bar";
     let expected = r##"Foo <a href="#11.2.33">Clause 11.2.33</a>, bar"##;
+    assert_eq!(add_clause_references(&source), expected)
+}
+
+#[test]
+fn test_add_clause_links_in_clause_no() {
+    let source = "Foo in 11.2.33 bar";
+    let expected = r##"Foo <a href="#11.2.33">in 11.2.33</a> bar"##;
+    assert_eq!(add_clause_references(&source), expected)
+}
+
+#[test]
+fn test_add_clause_links_see_clause_no() {
+    let source = "Foo see 11.2.33 bar";
+    let expected = r##"Foo <a href="#11.2.33">see 11.2.33</a> bar"##;
     assert_eq!(add_clause_references(&source), expected)
 }
