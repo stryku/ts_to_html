@@ -48,7 +48,7 @@ fn extract_ts_number_from_file_path(path: &std::path::PathBuf) -> Option<&str> {
     return Some(&ts_number_and_version[0]);
 }
 
-fn docx_to_html(path: &std::path::PathBuf) -> Option<String> {
+fn docx_to_html(path: &std::path::PathBuf, out_path: &std::path::PathBuf) -> Option<String> {
     let output_file_name = format!("tmp/{}.html", path.file_stem().unwrap().to_string_lossy());
 
     let output = std::process::Command::new("lowriter")
@@ -58,7 +58,7 @@ fn docx_to_html(path: &std::path::PathBuf) -> Option<String> {
             path.to_str().unwrap(),
             &output_file_name,
             "--outdir",
-            "tmp",
+            out_path.to_str().unwrap(),
         ])
         .output();
 
@@ -76,20 +76,24 @@ fn docx_to_html(path: &std::path::PathBuf) -> Option<String> {
     }
 }
 
-fn handle_file(path: &std::path::PathBuf) {
-    let text_content = docx_to_html(path);
-    if text_content.is_none() {
-        return;
-    }
-
+fn handle_file(path: &std::path::PathBuf, out_path: &std::path::PathBuf) {
     let ts_number = &extract_ts_number_from_file_path(path);
     if ts_number.is_none() {
+        return;
+    }
+    let ts_no_with_dot = format!("{}.{}", &ts_number.unwrap()[..2], &ts_number.unwrap()[2..]);
+
+    let output_dir = format!("{}/{}", &out_path.to_string_lossy(), ts_no_with_dot);
+
+    let text_content = docx_to_html(path, &std::path::PathBuf::from(&output_dir));
+    if text_content.is_none() {
         return;
     }
 
     let html_content = rich_html::html_to_better_html(&text_content.unwrap());
 
-    std::fs::write("output.html", &html_content);
+    let output_file_path = format!("{}/{}.html", output_dir, ts_no_with_dot);
+    std::fs::write(output_file_path, &html_content);
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -100,10 +104,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.output_dir.to_string_lossy()
     );
 
-    let pdf_paths = gather_paths_with_extension(&args.input_dir, "docx")?;
+    let pdf_paths = gather_paths_with_extension(&args.input_dir, "doc")?;
     for p in pdf_paths {
         println!("{}", p.to_string_lossy());
-        handle_file(&p);
+        handle_file(&p, &args.output_dir);
     }
 
     Ok(())
