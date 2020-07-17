@@ -12,6 +12,7 @@ pub fn enrich_html(content: &String) -> String {
     result = add_clause_ids(&result);
     result = add_clause_links(&result);
     result = add_figure_ids(&result);
+    result = add_figure_links(&result);
     return result;
 }
 
@@ -20,6 +21,14 @@ fn add_figure_ids(content: &str) -> String {
         .unwrap();
 
     String::from(re.replace_all(content, "<b id=\"$figure_no\">$content"))
+}
+
+fn add_figure_links(content: &str) -> String {
+    let re =
+        Regex::new(r#"(?s:(?P<content>([Ff]igure\s+(?P<figure_no>(\d[\.\d\-a-z]*-\d+))))[^:])"#)
+            .unwrap();
+
+    String::from(re.replace_all(content, "<a href=\"#$figure_no\">$content</a> "))
 }
 
 fn add_clause_links(content: &str) -> String {
@@ -372,4 +381,12 @@ fn test_add_figure_ids() {
     let source = "<b>Figure 4.13.5.7b-1: Location";
     let expected = r#"<b id="4.13.5.7b-1">Figure 4.13.5.7b-1: Location"#;
     assert_eq!(add_figure_ids(&source), expected);
+}
+
+#[test]
+fn test_add_figure_links() {
+    let source = "Foo Figure 1.2.3-4 shows support. <b>Figure 5.6-7: Location";
+    let expected =
+        r##"Foo <a href="#1.2.3-4">Figure 1.2.3-4</a> shows support. <b>Figure 5.6-7: Location"##;
+    assert_eq!(add_figure_links(&source), expected);
 }
