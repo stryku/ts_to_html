@@ -11,13 +11,6 @@ impl SourceParser<'_> {
         }
     }
 
-    pub fn clone<'a>(&'a self) -> SourceParser<'a> {
-        SourceParser {
-            source: self.source,
-            current_pos: self.current_pos,
-        }
-    }
-
     pub fn get_source_slice<'s>(&'s self, begin: usize, end: usize) -> Option<&'s str> {
         if begin > end || begin > self.source.len() || end > self.source.len() {
             return None;

@@ -7,7 +7,7 @@ use regex::Regex;
 
 pub fn html_to_better_html(content: &String) -> String {
     let mut result = remove_hard_spaces(content);
-    result = remove_span_language_en_gb(&result);
+    result = remove_span_language_en(&result);
     result = better_toc(&result);
     result = add_clauses_ids(&result);
     result = add_clause_links(&result);
@@ -22,9 +22,9 @@ fn add_clause_links(content: &str) -> String {
         r#"(TS\s+)?(?P<ts_no_0>(\d{2}\.\d{3}))\s+\[\d+\],?\s+[cC]lause\s+(?P<clause_no_0>(\d[\.\da-z]*[\da-z]))"#,
         // clause 5.3.3.1 (Some text) in TS 23.401 [13] // "(Some text)" is optional, "in" can be "of"
         r#"(((in)|(see))\s+)?[cC]lause\s+(?P<clause_no_1>(\d[\.\da-z]*[\da-z]))\s+(\([^<^>.]+\)\s+)?((of)|(in))\s+TS\s+(?P<ts_no_1>(\d{2}\.\d{3}))\s+\[\d+\]"#,
-        // in clause 4.4 // "in" can be "see" and is optional
+        // in clause 4.4 // "in" can be "see" and it is optional
         r#"(((in)|(see))\s+)?[cC]lause\s+(?P<clause_no_2>(\d[\.\da-z]*[\da-z]))"#,
-        // in 4.3.3.2 // "in" can be "see" and is mandatory
+        // in 4.3.3.2 // "in" can be "see" and it is mandatory
         r#"((in)|(see))\s+(?P<clause_no_3>(\d[\.\da-z]*[\da-z]))"#,
         // TS 23.501 [2]
         r#"(TS\s+)?(?P<ts_no_2>(\d{2}\.\d{3}))\s+\[\d+\]"#,
@@ -88,7 +88,7 @@ fn add_clause_links(content: &str) -> String {
     result
 }
 
-fn better_toc(content: &String) -> String {
+fn better_toc(content: &str) -> String {
     println!("\tTOC...");
     let mut modifier = source_modifier::SourceModifier::new(&content);
 
@@ -140,7 +140,7 @@ fn extract_clause_no_from_h_entry(h_entry: &str) -> Option<String> {
     return Some(String::from(split[0]));
 }
 
-fn add_clauses_ids(content: &String) -> String {
+fn add_clauses_ids(content: &str) -> String {
     println!("\tClause ids...");
 
     let mut modifier = source_modifier::SourceModifier::new(&content);
@@ -165,11 +165,10 @@ fn add_clauses_ids(content: &String) -> String {
 
 fn remove_hard_spaces(content: &String) -> String {
     println!("\tRemoving hard spaces...");
-
     return content.replace("&nbsp;", " ");
 }
 
-fn remove_span_language_en_gb(content: &String) -> String {
+fn remove_span_language_en(content: &String) -> String {
     println!("\tRemoving span_language...");
     let re = Regex::new(r#"(?s:<span lang="en-[A-Z]{2}">(?P<span_content>(.*?))</span>)"#).unwrap();
     return String::from(re.replace_all(content, "$span_content"));
@@ -298,4 +297,64 @@ fn test_add_clause_links_doesnt_replace_standalone_number() {
     let source = "Foo 4.5 bar";
     let expected = r#"Foo 4.5 bar"#;
     assert_eq!(add_clause_links(&source), expected)
+}
+
+#[test]
+fn test_remove_span_language_en() {
+    let source =
+        r#"FOO <span lang="en-GB"> BAR </span> BAZ <span lang="en-US"> QUX </span> TOP KEK"#;
+    let expected = r#"FOO  BAR  BAZ  QUX  TOP KEK"#;
+    assert_eq!(remove_span_language_en(&String::from(source)), expected)
+}
+
+#[test]
+fn test_extract_clause_no_from_toc_entry() {
+    let source = r#"<p lang="en-GB" style="margin-left: 0.79in;">
+	5.17.2<font face="Calibri, sans-serif"><font size="2" style="font-size: 11pt"><span lang="en-US">	</span></font></font>Interworking
+	with EPC	<a href="\#__RefHeading___Toc19177586">164</a></p>"#;
+
+    let expected = "5.17.2";
+
+    let result = extract_clause_no_from_toc_entry(&source);
+    assert!(!result.is_none());
+    assert_eq!(result.unwrap(), expected)
+}
+
+#[test]
+fn test_extract_clause_no_from_h_entry() {
+    let source = r##"<h4 lang="en-US" class="western"><a name="__RefHeading___Toc19183553"></a>
+4.2.3.3	Lorem ipsum dolor sit amet</h4>
+<p lang="en-GB" class="western" style="margin-bottom: 0.13in; line-height: 100%">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, .</p>"##;
+
+    let expected = "4.2.3.3";
+
+    let result = extract_clause_no_from_h_entry(&source);
+    assert!(!result.is_none());
+    assert_eq!(result.unwrap(), expected)
+}
+
+#[test]
+fn test_add_clauses_ids() {
+    let source = r##"<h1 lang="en-US" class="western"><a name="__RefHeading___Toc19183553"></a>
+1.2.3	Lorem ipsum dolor sit amet</h1>
+<p lang="en-GB" class="western" style="margin-bottom: 0.13in; line-height: 100%">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, .</p>
+
+<h2 lang="en-US" class="western"><a name="__RefHeading___Toc19183553"></a>
+4.5	Lorem ipsum dolor sit amet</h2>
+<p lang="en-GB" class="western" style="margin-bottom: 0.13in; line-height: 100%">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, .</p>"##;
+
+    let expected = r##"<h1 id="1.2.3"  lang="en-US" class="western"><a name="__RefHeading___Toc19183553"></a>
+1.2.3	Lorem ipsum dolor sit amet</h1>
+<p lang="en-GB" class="western" style="margin-bottom: 0.13in; line-height: 100%">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, .</p>
+
+<h2 id="4.5"  lang="en-US" class="western"><a name="__RefHeading___Toc19183553"></a>
+4.5	Lorem ipsum dolor sit amet</h2>
+<p lang="en-GB" class="western" style="margin-bottom: 0.13in; line-height: 100%">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, .</p>"##;
+
+    assert_eq!(add_clauses_ids(&source), expected);
 }
