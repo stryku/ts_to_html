@@ -9,7 +9,7 @@ pub fn enrich_html(content: &String) -> String {
     let mut result = remove_hard_spaces(content);
     result = remove_span_language_en(&result);
     result = better_toc(&result);
-    result = add_clauses_ids(&result);
+    result = add_clause_ids(&result);
     result = add_clause_links(&result);
     result = add_figure_ids(&result);
     return result;
@@ -148,7 +148,7 @@ fn extract_clause_no_from_h_entry(h_entry: &str) -> Option<String> {
     return Some(String::from(split[0]));
 }
 
-fn add_clauses_ids(content: &str) -> String {
+fn add_clause_ids(content: &str) -> String {
     println!("\tClause ids...");
 
     let mut modifier = source_modifier::SourceModifier::new(&content);
@@ -364,7 +364,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit, .</p>
 <p lang="en-GB" class="western" style="margin-bottom: 0.13in; line-height: 100%">
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, .</p>"##;
 
-    assert_eq!(add_clauses_ids(&source), expected);
+    assert_eq!(add_clause_ids(&source), expected);
 }
 
 #[test]
