@@ -16,32 +16,20 @@ pub fn html_to_better_html(content: &String) -> String {
 
 fn add_clause_references(content: &str) -> String {
     let res = vec![
-        // TS 23.501 [2], clause 5.4.4.1b // the comma is optional
-        r#"(TS\s+)?(?P<ts_no_1>(\d{2}\.\d{3}))\s+\[\d+\],?\s+[cC]lause\s+(?P<clause_no_0>(\d[\.\da-z]*[\da-z]))"#,
+        // TS 23.501 [2], clause 5.4.4.1b // the comma is optional, the last letter is optional
+        r#"(TS\s+)?(?P<ts_no_0>(\d{2}\.\d{3}))\s+\[\d+\],?\s+[cC]lause\s+(?P<clause_no_0>(\d[\.\da-z]*[\da-z]))"#,
         // clause 5.3.3.1 (Some text) in TS 23.401 [13] // "(Some text)" is optional, "in" can be "of"
-        r#"[cC]lause\s+(?P<clause_no_1>(\d[\.\da-z]*[\da-z]))\s+(\([^<^>.]+\)\s+)?((of)|(in))\s+TS\s+(?P<ts_no_2>(\d{2}\.\d{3}))\s+\[\d+\]"#,
+        r#"[cC]lause\s+(?P<clause_no_1>(\d[\.\da-z]*[\da-z]))\s+(\([^<^>.]+\)\s+)?((of)|(in))\s+TS\s+(?P<ts_no_1>(\d{2}\.\d{3}))\s+\[\d+\]"#,
         // in clause 4.4 // "in" can be "see" and is optional
         r#"(((in)|(see))\s+)?[cC]lause\s+(?P<clause_no_2>(\d[\.\da-z]*[\da-z]))"#,
         // in 4.3.3.2 // "in" can be "see" and is mandatory
         r#"((in)|(see))\s+(?P<clause_no_3>(\d[\.\da-z]*[\da-z]))"#,
+        // TS 23.501 [2]
+        r#"(TS\s+)?(?P<ts_no_2>(\d{2}\.\d{3}))\s+\[\d+\]"#,
     ];
 
     let joined = res.join(")|(");
     let complete_regex = format!("(?s:(?P<whole_content>(({}))))", joined);
-
-    /*
-    TS 23.501 [2] clause 5.4.4b
-    TS 23.501 [2] clause 5.15.7.2
-    TS 23.501 [2], clause 5.4.4.1
-    23.501 [2] clause 5.6.3
-    TS 29.502 [36]
-    clause 5.3.3.1 (Some text) in TS 23.401 [13]
-    clause 5.15.5.3 of TS 23.501 [2]
-    clause 4.4
-    in 4.3.3.2
-    Clause 4.3
-    */
-
     let re = Regex::new(complete_regex.as_str()).unwrap();
 
     let mut result = String::new();
@@ -53,13 +41,22 @@ fn add_clause_references(content: &str) -> String {
             result.push_str(&content[last_end..whole_match.start()]);
             last_end = whole_match.end();
 
-            let ts_no = if let Some(ts_1) = cap.name("ts_no_1") {
-                Some(ts_1)
-            } else if let Some(ts_2) = cap.name("ts_no_2") {
-                Some(ts_2)
-            } else {
-                None
+            let mut link = String::new();
+
+            let ts_getter = || {
+                let number_of_ts = 3;
+                for name_no in 0..number_of_ts {
+                    let group_name = format!("ts_no_{}", name_no);
+                    if let Some(clause_no) = cap.name(&group_name) {
+                        return Some(clause_no);
+                    }
+                }
+
+                return None;
             };
+            if let Some(ts_no) = ts_getter() {
+                link.push_str(&format!("../{0}/{0}.html", ts_no.as_str()));
+            }
 
             let clause_getter = || {
                 for name_no in 0..res.len() {
@@ -73,23 +70,16 @@ fn add_clause_references(content: &str) -> String {
             };
 
             if let Some(clause_no) = clause_getter() {
-                let to_insert = if !ts_no.is_none() {
-                    format!(
-                        "<a href=\"../{ts_no}/{ts_no}.html#{clause_no}\">{whole_content}</a>",
-                        ts_no = ts_no.unwrap().as_str(),
-                        clause_no = clause_no.as_str(),
-                        whole_content = whole_content
-                    )
-                } else {
-                    format!(
-                        "<a href=\"#{clause_no}\">{whole_content}</a>",
-                        clause_no = clause_no.as_str(),
-                        whole_content = whole_content
-                    )
-                };
-
-                result.push_str(&to_insert);
+                link.push_str(&format!("#{}", clause_no.as_str()));
             }
+
+            let to_insert = if !link.is_empty() {
+                format!("<a href=\"{}\">{}</a>", link, whole_content)
+            } else {
+                String::from(whole_content)
+            };
+
+            result.push_str(&to_insert);
         }
     }
     result.push_str(&content[last_end..]);
@@ -264,9 +254,8 @@ fn test_add_clause_links_clause_of_ts() {
 
 #[test]
 fn test_add_clause_links_clause_in_ts() {
-    let source = "Foo clause 11.2.33 in TS 44.555 [6] bar";
-    let expected =
-        r#"Foo <a href="../44.555/44.555.html#11.2.33">clause 11.2.33 in TS 44.555 [6]</a> bar"#;
+    let source = "Foo TS 11.222 [33] bar";
+    let expected = r#"Foo <a href="../11.222/11.222.html">TS 11.222 [33]</a> bar"#;
     assert_eq!(add_clause_references(&source), expected)
 }
 
@@ -300,6 +289,13 @@ fn test_add_clause_links_in_clause_no() {
 
 #[test]
 fn test_add_clause_links_see_clause_no() {
+    let source = "Foo see 11.2.33 bar";
+    let expected = r##"Foo <a href="#11.2.33">see 11.2.33</a> bar"##;
+    assert_eq!(add_clause_references(&source), expected)
+}
+
+#[test]
+fn test_add_clause_links_ts() {
     let source = "Foo see 11.2.33 bar";
     let expected = r##"Foo <a href="#11.2.33">see 11.2.33</a> bar"##;
     assert_eq!(add_clause_references(&source), expected)
