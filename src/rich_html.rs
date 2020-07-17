@@ -8,8 +8,8 @@ use regex::Regex;
 pub fn html_to_better_html(content: &String) -> String {
     let mut result = remove_hard_spaces(content);
     result = remove_span_language_en_gb(&result);
-    result = better_toc2(&result);
-    result = add_clauses_ids2(&result);
+    result = better_toc(&result);
+    result = add_clauses_ids(&result);
     result = add_clause_references(&result);
     return result;
 }
@@ -86,7 +86,7 @@ fn add_clause_references(content: &str) -> String {
     result
 }
 
-fn better_toc2(content: &String) -> String {
+fn better_toc(content: &String) -> String {
     let mut modifier = source_modifier::SourceModifier::new(&content);
 
     modifier.copy_til_end_of(r#"<div id="Table of Contents1" dir="ltr">"#);
@@ -139,7 +139,7 @@ fn extract_clause_no_from_h_entry(h_entry: &str) -> Option<String> {
     return Some(String::from(split[0]));
 }
 
-fn add_clauses_ids2(content: &String) -> String {
+fn add_clauses_ids(content: &String) -> String {
     let mut modifier = source_modifier::SourceModifier::new(&content);
 
     while modifier.is_before_end("<h") {
@@ -191,19 +191,6 @@ fn extract_clause_no_from_toc_entry(toc_entry: &str) -> Option<String> {
         parser.get_content_til_begin_of("<font").unwrap().trim(),
     ));
 }
-
-/*
-TS 23.501 [2] clause 5.4.4b
-TS 23.501 [2] clause 5.15.7.2
-TS 23.501 [2], clause 5.4.4.1
-23.501 [2] clause 5.6.3
-TS 29.502 [36]
-clause 5.3.3.1 (Some text) in TS 23.401 [13]
-clause 5.15.5.3 of TS 23.501 [2]
-clause 4.4
-in 4.3.3.2
-Clause 4.3
-*/
 
 #[test]
 fn test_add_clause_links_ts_clause() {
