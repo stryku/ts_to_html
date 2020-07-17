@@ -99,12 +99,10 @@ fn better_toc(content: &String) -> String {
 
         let p_content = modifier.get_content_til_end_of("</p>").unwrap();
         if let Some(clause_no) = extract_clause_no_from_toc_entry(&p_content) {
-            // println!("Handling clause {}", &clause_no);
             modifier.push_str(&format!("<a href=\"#{}\">", clause_no));
             modifier.copy_til_end_of("</p>");
             modifier.push_str("</a>");
         } else {
-            // println!("Cupying p");
             modifier.copy_til_end_of("</p>");
         }
     }
@@ -178,8 +176,6 @@ fn remove_span_language_en_gb(content: &String) -> String {
 }
 
 fn extract_clause_no_from_toc_entry(toc_entry: &str) -> Option<String> {
-    let mut parser = source_parser::SourceParser::new(&toc_entry);
-
     let re = Regex::new(r#"(?s:<[.[^<>]]+?>)"#).unwrap();
     let content = re.replace_all(toc_entry, "");
     let split_content = content.trim().split_whitespace().collect::<Vec<&str>>();
@@ -192,25 +188,6 @@ fn extract_clause_no_from_toc_entry(toc_entry: &str) -> Option<String> {
             None
         }
     }
-
-    // parser.goto_end_of("<p");
-    // parser.goto_end_of(">");
-    // if !parser.is_a_before_b("<font", "</p>") {
-    //     return None;
-    // }
-
-    // parser.goto_end_of("<font");
-
-    // let is_clause_reference =
-    //     parser.is_a_before_b("<font", "</p>") && parser.is_a_before_b("<font", "</font");
-    // if !is_clause_reference {
-    //     return None;
-    // }
-
-    // parser.goto_end_of(">");
-    // return Some(String::from(
-    //     parser.get_content_til_begin_of("<font").unwrap().trim(),
-    // ));
 }
 
 #[test]
