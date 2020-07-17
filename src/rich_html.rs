@@ -19,7 +19,7 @@ fn add_clause_references(content: &str) -> String {
         // TS 23.501 [2], clause 5.4.4.1b
         r#"(TS\s+)?(?P<ts_no_1>(\d{2}\.\d{3}))\s+\[\d+\],?\s+[cC]lause\s+(?P<clause_no_1>(\d[\.\da-z]*[\da-z]))"#,
         // clause 5.3.3.1 (Some text) in TS 23.401 [13]
-        r#"[cC]lause\s+(?P<clause_no_2>(\d[\.\da-z]*[\da-z]))\s+\([^<^>.]+\)\s+((of)|(in))\s+TS\s+(?P<ts_no_2>(\d{2}\.\d{3}))\s+\[\d+\]"#,
+        r#"[cC]lause\s+(?P<clause_no_2>(\d[\.\da-z]*[\da-z]))\s+(\([^<^>.]+\)\s+)?((of)|(in))\s+TS\s+(?P<ts_no_2>(\d{2}\.\d{3}))\s+\[\d+\]"#,
         // in clause 4.4
         r#"(((in)|(see))\s+)?[cC]lause\s+(?P<clause_no_3>(\d[\.\da-z]*[\da-z]))"#,
         // in 4.3.3.2
