@@ -36,20 +36,24 @@ fn gather_paths_with_extension(
     return Ok(pdf_paths);
 }
 
-fn extract_ts_number_from_file_path(path: &std::path::PathBuf) -> Option<&str> {
-    // Filename looks like: TSnumber-version.ext
+fn extract_ts_number_from_file_path(path: &std::path::PathBuf) -> Option<String> {
     let filename = path.file_stem().unwrap().to_str().unwrap();
-
     let ts_number_and_version = filename.split("-").collect::<Vec<&str>>();
     if ts_number_and_version.len() < 2 {
         return None;
     }
 
-    return Some(&ts_number_and_version[0]);
+    let ts_number = ts_number_and_version[0];
+    return Some(format!("{}.{}", &ts_number[..2], &ts_number[2..]));
 }
 
 fn docx_to_html(path: &std::path::PathBuf, out_path: &std::path::PathBuf) -> Option<String> {
-    let output_file_name = format!("tmp/{}.html", path.file_stem().unwrap().to_string_lossy());
+    let out_path = out_path.to_str().unwrap();
+    let output_file_name = format!(
+        "{}/{}.html",
+        out_path,
+        path.file_stem().unwrap().to_string_lossy()
+    );
 
     let output = std::process::Command::new("lowriter")
         .args(&[
@@ -58,7 +62,7 @@ fn docx_to_html(path: &std::path::PathBuf, out_path: &std::path::PathBuf) -> Opt
             path.to_str().unwrap(),
             &output_file_name,
             "--outdir",
-            out_path.to_str().unwrap(),
+            out_path,
         ])
         .output();
 
@@ -77,13 +81,14 @@ fn docx_to_html(path: &std::path::PathBuf, out_path: &std::path::PathBuf) -> Opt
 }
 
 fn handle_file(path: &std::path::PathBuf, out_path: &std::path::PathBuf) {
-    let ts_number = &extract_ts_number_from_file_path(path);
+    let ts_number = extract_ts_number_from_file_path(path);
     if ts_number.is_none() {
         return;
     }
-    let ts_no_with_dot = format!("{}.{}", &ts_number.unwrap()[..2], &ts_number.unwrap()[2..]);
 
-    let output_dir = format!("{}/{}", &out_path.to_string_lossy(), ts_no_with_dot);
+    let ts_no = ts_number.unwrap();
+
+    let output_dir = format!("{}/{}", &out_path.to_string_lossy(), ts_no);
 
     let text_content = docx_to_html(path, &std::path::PathBuf::from(&output_dir));
     if text_content.is_none() {
@@ -92,7 +97,7 @@ fn handle_file(path: &std::path::PathBuf, out_path: &std::path::PathBuf) {
 
     let html_content = rich_html::html_to_better_html(&text_content.unwrap());
 
-    let output_file_path = format!("{}/{}.html", output_dir, ts_no_with_dot);
+    let output_file_path = format!("{}/{}.html", output_dir, ts_no);
     std::fs::write(output_file_path, &html_content);
 }
 
