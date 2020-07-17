@@ -61,10 +61,12 @@ fn add_clause_links(content: &str) -> String {
     for cap in re.captures_iter(content) {
         if let Some(whole_match) = cap.get(0) {
             let whole_content = &content[whole_match.start()..whole_match.end()];
+
             result.push_str(&content[last_end..whole_match.start()]);
+
             last_end = whole_match.end();
 
-            let mut link = String::new();
+            let mut result_link = String::new();
 
             let ts_getter = || {
                 let number_of_ts_regexes = 3;
@@ -78,7 +80,7 @@ fn add_clause_links(content: &str) -> String {
                 return None;
             };
             if let Some(ts_no) = ts_getter() {
-                link.push_str(&format!("../{0}/{0}.html", ts_no.as_str()));
+                result_link.push_str(&format!("../{0}/{0}.html", ts_no.as_str()));
             }
 
             let clause_getter = || {
@@ -93,11 +95,11 @@ fn add_clause_links(content: &str) -> String {
             };
 
             if let Some(clause_no) = clause_getter() {
-                link.push_str(&format!("#{}", clause_no.as_str()));
+                result_link.push_str(&format!("#{}", clause_no.as_str()));
             }
 
-            let to_insert = if !link.is_empty() {
-                format!("<a href=\"{}\">{}</a>", link, whole_content)
+            let to_insert = if !result_link.is_empty() {
+                format!("<a href=\"{}\">{}</a>", result_link, whole_content)
             } else {
                 String::from(whole_content)
             };
