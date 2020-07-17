@@ -5,7 +5,7 @@ mod source_parser;
 
 use regex::Regex;
 
-pub fn html_to_better_html(content: &String) -> String {
+pub fn enrich_html(content: &String) -> String {
     let mut result = remove_hard_spaces(content);
     result = remove_span_language_en(&result);
     result = better_toc(&result);

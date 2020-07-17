@@ -1,4 +1,3 @@
-// mod clause_reference_finder;
 mod rich_html;
 
 use exitfailure::ExitFailure;
@@ -99,7 +98,7 @@ fn handle_file(
     let output_dir = format!("{}/{}", &out_path.to_string_lossy(), ts_no);
 
     let html_content = docx_to_html(path, &std::path::PathBuf::from(&output_dir))?;
-    let html_content = rich_html::html_to_better_html(&html_content);
+    let html_content = rich_html::enrich_html(&html_content);
 
     let output_file_path = format!("{}/{}.html", output_dir, ts_no);
     std::fs::write(&output_file_path, &html_content)
