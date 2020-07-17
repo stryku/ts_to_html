@@ -20,37 +20,37 @@ impl SourceParser<'_> {
     }
 
     pub fn get_current_pos(&self) -> usize {
-        return self.current_pos;
+        self.current_pos
     }
 
     pub fn get_content_til_end_of_source(&self) -> &str {
-        return &self.source[self.current_pos..];
+        &self.source[self.current_pos..]
     }
 
     fn next_char(&self, n: usize) -> char {
-        return self.current_source().chars().nth(n).unwrap();
+        self.current_source().chars().nth(n).unwrap()
     }
 
     fn current_char(&self) -> char {
-        return self.next_char(0);
+        self.next_char(0)
     }
 
     pub fn current_is_digit(&self) -> bool {
-        return !self.is_at_end() && self.current_char().is_digit(10);
+        !self.is_at_end() && self.current_char().is_digit(10)
     }
 
     pub fn current_is(&self, c: char) -> bool {
-        return !self.is_at_end() && self.current_char() == c;
+        !self.is_at_end() && self.current_char() == c
     }
 
     pub fn next_is_digit(&self) -> bool {
-        return self.current_pos + 1 < self.source.len() && self.next_char(1).is_digit(10);
+        self.current_pos + 1 < self.source.len() && self.next_char(1).is_digit(10)
     }
 
     pub fn advance_for_count_and_get_omitted_source(&mut self, count: usize) -> &str {
         let old_pos = self.current_pos;
         self.current_pos += count;
-        return &self.source[old_pos..self.current_pos];
+        &self.source[old_pos..self.current_pos]
     }
 
     pub fn skip_whitespaces(&mut self) {
@@ -60,11 +60,6 @@ impl SourceParser<'_> {
             self.goto_end();
         }
     }
-
-    // pub fn peek_word<'a>(&'a mut self) -> Option<&'a str> {
-    //     let mut sub_parser = self.clone();
-    //     return sub_parser.skip_word();
-    // }
 
     pub fn skip_word(&mut self) -> Option<&str> {
         self.skip_whitespaces();
@@ -76,7 +71,7 @@ impl SourceParser<'_> {
             return Some(&self.source[self.get_current_pos()..pos]);
         }
 
-        return None;
+        None
     }
 
     pub fn is_a_before_b(&self, a: &str, b: &str) -> bool {
@@ -91,7 +86,7 @@ impl SourceParser<'_> {
             return true;
         }
 
-        return a_pos.unwrap() < b_pos.unwrap();
+        a_pos.unwrap() < b_pos.unwrap()
     }
 
     pub fn is_before_end(&self, pattern: &str) -> bool {
@@ -109,13 +104,13 @@ impl SourceParser<'_> {
     pub fn goto_begin_of_and_get_omitted_content(&mut self, pattern: &str) -> Option<&str> {
         let old_pos = self.current_pos;
         self.goto_begin_of(pattern);
-        return Some(&self.source[old_pos..self.current_pos]);
+        Some(&self.source[old_pos..self.current_pos])
     }
 
     pub fn goto_end_of_and_get_omitted_content(&mut self, pattern: &str) -> Option<&str> {
         let old_pos = self.current_pos;
         self.goto_end_of(pattern);
-        return Some(&self.source[old_pos..self.current_pos]);
+        Some(&self.source[old_pos..self.current_pos])
     }
 
     pub fn goto_end_of(&mut self, pattern: &str) {
@@ -149,7 +144,7 @@ impl SourceParser<'_> {
     }
 
     fn find_pattern_pos(&self, pattern: &str) -> Option<usize> {
-        return self.current_source().find(pattern);
+        self.current_source().find(pattern)
     }
 
     fn current_source(&self) -> &str {
@@ -157,7 +152,7 @@ impl SourceParser<'_> {
     }
 
     pub fn is_at_end(&self) -> bool {
-        return self.get_current_pos() == self.source.len();
+        self.get_current_pos() == self.source.len()
     }
 
     pub fn get_source_len(&self) -> usize {

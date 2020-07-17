@@ -13,10 +13,12 @@ pub fn enrich_html(content: &String) -> String {
     result = add_clause_links(&result);
     result = add_figure_ids(&result);
     result = add_figure_links(&result);
-    return result;
+
+    result
 }
 
 fn add_figure_ids(content: &str) -> String {
+    println!("\tAdding figure ids...");
     let re = Regex::new(r#"(?s:<b>(?P<content>(\s*Figure\s+(?P<figure_no>(\d[\.\d\-a-z]*)):)))"#)
         .unwrap();
 
@@ -24,6 +26,8 @@ fn add_figure_ids(content: &str) -> String {
 }
 
 fn add_figure_links(content: &str) -> String {
+    println!("\tAdding figure links...");
+
     let re =
         Regex::new(r#"(?s:(?P<content>([Ff]igure\s+(?P<figure_no>(\d[\.\d\-a-z]*-\d+))))[^:])"#)
             .unwrap();
@@ -32,9 +36,9 @@ fn add_figure_links(content: &str) -> String {
 }
 
 fn add_clause_links(content: &str) -> String {
-    println!("\tClause links...");
+    println!("\tAdding clause links...");
 
-    let res = vec![
+    let regexes = vec![
         // TS 23.501 [2], clause 5.4.4.1b // the comma is optional, the last letter is optional
         r#"(TS\s+)?(?P<ts_no_0>(\d{2}\.\d{3}))\s+\[\d+\],?\s+[cC]lause\s+(?P<clause_no_0>(\d[\.\da-z]*[\da-z]))"#,
         // clause 5.3.3.1 (Some text) in TS 23.401 [13] // "(Some text)" is optional, "in" can be "of"
@@ -47,7 +51,7 @@ fn add_clause_links(content: &str) -> String {
         r#"(TS\s+)?(?P<ts_no_2>(\d{2}\.\d{3}))\s+\[\d+\]"#,
     ];
 
-    let joined = res.join(")|(");
+    let joined = regexes.join(")|(");
     let complete_regex = format!("(?s:(?P<whole_content>(({}))))", joined);
     let re = Regex::new(complete_regex.as_str()).unwrap();
 
@@ -63,8 +67,8 @@ fn add_clause_links(content: &str) -> String {
             let mut link = String::new();
 
             let ts_getter = || {
-                let number_of_ts = 3;
-                for name_no in 0..number_of_ts {
+                let number_of_ts_regexes = 3;
+                for name_no in 0..number_of_ts_regexes {
                     let group_name = format!("ts_no_{}", name_no);
                     if let Some(clause_no) = cap.name(&group_name) {
                         return Some(clause_no);
@@ -78,7 +82,7 @@ fn add_clause_links(content: &str) -> String {
             }
 
             let clause_getter = || {
-                for name_no in 0..res.len() {
+                for name_no in 0..regexes.len() {
                     let group_name = format!("clause_no_{}", name_no);
                     if let Some(clause_no) = cap.name(&group_name) {
                         return Some(clause_no);
@@ -105,6 +109,29 @@ fn add_clause_links(content: &str) -> String {
     result
 }
 
+fn add_clause_ids(content: &str) -> String {
+    println!("\tAdding clause ids...");
+
+    let mut modifier = source_modifier::SourceModifier::new(&content);
+
+    while modifier.is_before_end("<h") {
+        modifier.copy_til_begin_of("<h");
+
+        let h_content = modifier.get_content_til_end_of("</h").unwrap();
+        if let Some(clause_no) = extract_clause_no_from_h_entry(&h_content) {
+            modifier.copy_til_end_of("<h");
+            modifier.copy_chars_count(1);
+            modifier.push_str(&format!(" id=\"{}\" ", clause_no));
+            modifier.copy_til_end_of("</h");
+        } else {
+            modifier.copy_til_end_of("</h");
+        }
+    }
+
+    modifier.copy_til_end_of_source();
+    modifier.get_result().clone()
+}
+
 fn better_toc(content: &str) -> String {
     println!("\tTOC...");
     let mut modifier = source_modifier::SourceModifier::new(&content);
@@ -125,7 +152,7 @@ fn better_toc(content: &str) -> String {
     }
 
     modifier.copy_til_end_of_source();
-    return modifier.get_result().clone();
+    modifier.get_result().clone()
 }
 
 fn extract_clause_no_from_h_entry(h_entry: &str) -> Option<String> {
@@ -154,41 +181,18 @@ fn extract_clause_no_from_h_entry(h_entry: &str) -> Option<String> {
         return None;
     }
 
-    return Some(String::from(split[0]));
-}
-
-fn add_clause_ids(content: &str) -> String {
-    println!("\tClause ids...");
-
-    let mut modifier = source_modifier::SourceModifier::new(&content);
-
-    while modifier.is_before_end("<h") {
-        modifier.copy_til_begin_of("<h");
-
-        let h_content = modifier.get_content_til_end_of("</h").unwrap();
-        if let Some(clause_no) = extract_clause_no_from_h_entry(&h_content) {
-            modifier.copy_til_end_of("<h");
-            modifier.copy_chars_count(1);
-            modifier.push_str(&format!(" id=\"{}\" ", clause_no));
-            modifier.copy_til_end_of("</h");
-        } else {
-            modifier.copy_til_end_of("</h");
-        }
-    }
-
-    modifier.copy_til_end_of_source();
-    return modifier.get_result().clone();
+    Some(String::from(split[0]))
 }
 
 fn remove_hard_spaces(content: &String) -> String {
     println!("\tRemoving hard spaces...");
-    return content.replace("&nbsp;", " ");
+    content.replace("&nbsp;", " ")
 }
 
 fn remove_span_language_en(content: &String) -> String {
     println!("\tRemoving span_language...");
     let re = Regex::new(r#"(?s:<span lang="en-[A-Z]{2}">(?P<span_content>(.*?))</span>)"#).unwrap();
-    return String::from(re.replace_all(content, "$span_content"));
+    String::from(re.replace_all(content, "$span_content"))
 }
 
 fn extract_clause_no_from_toc_entry(toc_entry: &str) -> Option<String> {
