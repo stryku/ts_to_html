@@ -11,7 +11,15 @@ pub fn enrich_html(content: &String) -> String {
     result = better_toc(&result);
     result = add_clauses_ids(&result);
     result = add_clause_links(&result);
+    result = add_figure_ids(&result);
     return result;
+}
+
+fn add_figure_ids(content: &str) -> String {
+    let re = Regex::new(r#"(?s:<b>(?P<content>(\s*Figure\s+(?P<figure_no>(\d[\.\d\-a-z]*)):)))"#)
+        .unwrap();
+
+    String::from(re.replace_all(content, "<b id=\"$figure_no\">$content"))
 }
 
 fn add_clause_links(content: &str) -> String {
@@ -357,4 +365,11 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit, .</p>
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, .</p>"##;
 
     assert_eq!(add_clauses_ids(&source), expected);
+}
+
+#[test]
+fn test_add_figure_ids() {
+    let source = "<b>Figure 4.13.5.7b-1: Location";
+    let expected = r#"<b id="4.13.5.7b-1">Figure 4.13.5.7b-1: Location"#;
+    assert_eq!(add_figure_ids(&source), expected);
 }
