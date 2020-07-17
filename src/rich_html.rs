@@ -304,3 +304,17 @@ fn test_add_clause_links_see_clause_no() {
     let expected = r##"Foo <a href="#11.2.33">see 11.2.33</a> bar"##;
     assert_eq!(add_clause_references(&source), expected)
 }
+
+#[test]
+fn test_add_clause_links_doesnt_replace_regular_sentence_with_in_see() {
+    let source = "Foo in bar, see baz. Qux";
+    let expected = r#"Foo in bar, see baz. Qux"#;
+    assert_eq!(add_clause_references(&source), expected)
+}
+
+#[test]
+fn test_add_clause_links_doesnt_replace_standalone_number() {
+    let source = "Foo 4.5 bar";
+    let expected = r#"Foo 4.5 bar"#;
+    assert_eq!(add_clause_references(&source), expected)
+}
