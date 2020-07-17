@@ -12,30 +12,6 @@ pub fn html_to_better_html(content: &String) -> String {
     result = add_clauses_ids2(&result);
     result = add_clause_references(&result);
     return result;
-
-    // let mut better_content = better_toc(&content);
-    // better_content = add_clauses_ids(&better_content);
-    // better_content = add_clauses_references(&better_content);
-    // return Some(better_content);
-
-    // let mut result_body_content = String::new();
-
-    // for line in content.lines() {
-    //     if is_toc_line(line) {
-    //         result_body_content.push_str(&toc_line_to_html(line));
-    //     } else if is_clause_start_line(line) {
-    //         result_body_content.push_str(&clause_start_line_to_html(line));
-    //     } else if is_table_start_line(line) {
-    //         result_body_content.push_str(&table_start_line_to_html(line));
-    //     } else {
-    //         result_body_content.push_str(&regular_line_to_html(line));
-    //     }
-    // }
-
-    // return Some(format!(
-    //     "<html><head></head><body>{}</body>",
-    //     result_body_content
-    // ));
 }
 
 fn add_clause_references(content: &String) -> String {
@@ -62,13 +38,6 @@ fn add_clause_references(content: &String) -> String {
     Clause 4.3
     */
 
-    // TS\s+\d{2}\.\d{3}(\s+\[\d+\])?,?\s+clause\s+[\d\.a-z\-]+
-    // \d{2}\.\d{3}(\s+\[\d+\])?,?\s+clause\s+[\d\.a-z\-]+
-    // clause\s+[\d\.a-z\-]+\s+of\s+TS\s+\d{2}\.\d{3}(\s+\[\d+\])?
-
-    // (\d{2}\.\d{3}(\s+\[\d{1,2}\])?,?\s+)?(in\s+)?([Cc]lause\s+)?[\d\.\-]+[\da-z](\s+of\s+TS\s+\d{2}\.\d{3}(\s+\[\d+\])?)?
-
-    // let re = Regex::new(r#"(?s:((?P<ts_number_1>(\d{2}\.\d{3}))(\s+\[\d{1,2}\])?,?\s+)?(in\s+)?([Cc]lause\s+)?(?P<clause_no>([\d\.\-]+[\da-z]))(\s+of\s+TS\s+(?P<ts_number_2>(\d{2}\.\d{3})(\s+\[\d+\])?)?))"#).unwrap();
     let re = Regex::new(complete_regex.as_str()).unwrap();
 
     let mut result = String::new();
@@ -120,23 +89,15 @@ fn add_clause_references(content: &String) -> String {
         }
     }
     result.push_str(&content[last_end..]);
-
     result
-
-    // return String::from(re.replace_all(
-    //     content,
-    //     "<a href=\"../$ts_no/$ts_no.html#$clause_no_1$clause_no_2$clause_no_3$clause_no_4\">$whole_content</a>",
-    // ));
 }
 
 fn better_toc2(content: &String) -> String {
     let mut modifier = source_modifier::SourceModifier::new(&content);
 
-    println!("----------------1");
     modifier.copy_til_end_of(r#"<div id="Table of Contents1" dir="ltr">"#);
 
     while modifier.is_a_before_b("<p", "</div>") {
-        println!("----------------2");
         modifier.copy_til_begin_of("<p");
 
         let p_content = modifier.get_content_til_end_of("</p>").unwrap();
