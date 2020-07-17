@@ -1,6 +1,8 @@
 // mod clause_reference_finder;
 mod rich_html;
 
+use exitfailure::ExitFailure;
+use failure::ResultExt;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -14,14 +16,13 @@ struct CliArgs {
 fn gather_paths_with_extension(
     dir: &std::path::PathBuf,
     ext: &str,
-) -> Result<Vec<std::path::PathBuf>, Box<dyn std::error::Error>> {
+) -> Result<Vec<std::path::PathBuf>, ExitFailure> {
     let files = std::fs::read_dir(&dir)?;
 
     let mut pdf_paths = Vec::new();
 
     for f in files {
         let path = &f.unwrap().path();
-
         if !path.is_file() {
             continue;
         }
@@ -47,7 +48,10 @@ fn extract_ts_number_from_file_path(path: &std::path::PathBuf) -> Option<String>
     return Some(format!("{}.{}", &ts_number[..2], &ts_number[2..]));
 }
 
-fn docx_to_html(path: &std::path::PathBuf, out_path: &std::path::PathBuf) -> Option<String> {
+fn docx_to_html(
+    path: &std::path::PathBuf,
+    out_path: &std::path::PathBuf,
+) -> Result<String, ExitFailure> {
     let out_path = out_path.to_str().unwrap();
     let output_file_name = format!(
         "{}/{}.html",
@@ -55,7 +59,7 @@ fn docx_to_html(path: &std::path::PathBuf, out_path: &std::path::PathBuf) -> Opt
         path.file_stem().unwrap().to_string_lossy()
     );
 
-    let output = std::process::Command::new("lowriter")
+    let _output = std::process::Command::new("lowriter")
         .args(&[
             "--convert-to",
             "html",
@@ -64,55 +68,52 @@ fn docx_to_html(path: &std::path::PathBuf, out_path: &std::path::PathBuf) -> Opt
             "--outdir",
             out_path,
         ])
-        .output();
+        .output()
+        .with_context(|_| {
+            format!(
+                "could not convert file `{}` to HTML",
+                path.to_str().unwrap()
+            )
+        })?;
 
-    match output {
-        Err(_) => {
-            return None;
-        }
-        _ => {}
-    }
+    let html_content = std::fs::read_to_string(&output_file_name)
+        .with_context(|_| format!("could not read converted html file `{}`", output_file_name))?;
 
-    let result = std::fs::read_to_string(&output_file_name);
-    match result {
-        Ok(content) => Some(content),
-        Err(_) => None,
-    }
+    Ok(html_content)
 }
 
-fn handle_file(path: &std::path::PathBuf, out_path: &std::path::PathBuf) {
+fn handle_file(
+    path: &std::path::PathBuf,
+    out_path: &std::path::PathBuf,
+) -> Result<(), ExitFailure> {
     let ts_number = extract_ts_number_from_file_path(path);
     if ts_number.is_none() {
-        return;
+        return Err(failure::err_msg(
+            "could not extract TS number from file path",
+        ))
+        .context(format!("file `{}`", path.to_str().unwrap()))?;
     }
 
     let ts_no = ts_number.unwrap();
 
     let output_dir = format!("{}/{}", &out_path.to_string_lossy(), ts_no);
 
-    let text_content = docx_to_html(path, &std::path::PathBuf::from(&output_dir));
-    if text_content.is_none() {
-        return;
-    }
-
-    let html_content = rich_html::html_to_better_html(&text_content.unwrap());
+    let html_content = docx_to_html(path, &std::path::PathBuf::from(&output_dir))?;
+    let html_content = rich_html::html_to_better_html(&html_content);
 
     let output_file_path = format!("{}/{}.html", output_dir, ts_no);
-    std::fs::write(output_file_path, &html_content);
+    std::fs::write(&output_file_path, &html_content)
+        .with_context(|_| format!("could not write HTML file `{}`", &output_file_path))?;
+
+    Ok(())
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), ExitFailure> {
     let args = CliArgs::from_args();
-    println!(
-        "Hello, world! in: {}, out: {}",
-        args.input_dir.to_string_lossy(),
-        args.output_dir.to_string_lossy()
-    );
-
-    let pdf_paths = gather_paths_with_extension(&args.input_dir, "doc")?;
-    for p in pdf_paths {
+    let file_paths = gather_paths_with_extension(&args.input_dir, "doc")?;
+    for p in file_paths {
         println!("{}", p.to_string_lossy());
-        handle_file(&p, &args.output_dir);
+        handle_file(&p, &args.output_dir)?;
     }
 
     Ok(())
