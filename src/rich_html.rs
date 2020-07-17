@@ -10,11 +10,11 @@ pub fn html_to_better_html(content: &String) -> String {
     result = remove_span_language_en_gb(&result);
     result = better_toc(&result);
     result = add_clauses_ids(&result);
-    result = add_clause_references(&result);
+    result = add_clause_links(&result);
     return result;
 }
 
-fn add_clause_references(content: &str) -> String {
+fn add_clause_links(content: &str) -> String {
     println!("\tClause links...");
 
     let res = vec![
@@ -195,7 +195,7 @@ fn test_add_clause_links_ts_clause() {
     let source = "Foo TS 11.222 [3] clause 4.55.6 bar";
     let expected =
         r#"Foo <a href="../11.222/11.222.html#4.55.6">TS 11.222 [3] clause 4.55.6</a> bar"#;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
@@ -203,7 +203,7 @@ fn test_add_clause_links_ts_with_comma_clause() {
     let source = "Foo TS 11.222 [3], clause 4.55.6 bar";
     let expected =
         r#"Foo <a href="../11.222/11.222.html#4.55.6">TS 11.222 [3], clause 4.55.6</a> bar"#;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
@@ -211,7 +211,7 @@ fn test_add_clause_links_ts_clause_with_letter_at_end() {
     let source = "Foo TS 11.222 [3] clause 4.55.6b bar";
     let expected =
         r#"Foo <a href="../11.222/11.222.html#4.55.6b">TS 11.222 [3] clause 4.55.6b</a> bar"#;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
@@ -219,14 +219,14 @@ fn test_add_clause_links_ts_clause_with_dot_at_end() {
     let source = "Foo TS 11.222 [3] clause 4.55.6. Bar";
     let expected =
         r#"Foo <a href="../11.222/11.222.html#4.55.6">TS 11.222 [3] clause 4.55.6</a>. Bar"#;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
 fn test_add_clause_links_ts_without_ts_word_clause() {
     let source = "Foo 11.222 [3] clause 4.55.6 bar";
     let expected = r#"Foo <a href="../11.222/11.222.html#4.55.6">11.222 [3] clause 4.55.6</a> bar"#;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
@@ -234,68 +234,68 @@ fn test_add_clause_links_clause_of_ts() {
     let source = "Foo in clause 11.2.33 of TS 44.555 [6] bar";
     let expected =
         r#"Foo <a href="../44.555/44.555.html#11.2.33">in clause 11.2.33 of TS 44.555 [6]</a> bar"#;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
 fn test_add_clause_links_clause_in_ts() {
     let source = "Foo TS 11.222 [33] bar";
     let expected = r#"Foo <a href="../11.222/11.222.html">TS 11.222 [33]</a> bar"#;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
 fn test_add_clause_links_clause_some_text_in_ts() {
     let source = "Foo clause 11.2.33 (Some text) in TS 44.555 [6] bar";
     let expected = r#"Foo <a href="../44.555/44.555.html#11.2.33">clause 11.2.33 (Some text) in TS 44.555 [6]</a> bar"#;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
 fn test_add_clause_links_clause() {
     let source = "Foo clause 11.2.33 bar";
     let expected = r##"Foo <a href="#11.2.33">clause 11.2.33</a> bar"##;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
 fn test_add_clause_links_clause_capital() {
     let source = "Foo Clause 11.2.33, bar";
     let expected = r##"Foo <a href="#11.2.33">Clause 11.2.33</a>, bar"##;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
 fn test_add_clause_links_in_clause_no() {
     let source = "Foo in 11.2.33 bar";
     let expected = r##"Foo <a href="#11.2.33">in 11.2.33</a> bar"##;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
 fn test_add_clause_links_see_clause_no() {
     let source = "Foo see 11.2.33 bar";
     let expected = r##"Foo <a href="#11.2.33">see 11.2.33</a> bar"##;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
 fn test_add_clause_links_ts() {
     let source = "Foo see 11.2.33 bar";
     let expected = r##"Foo <a href="#11.2.33">see 11.2.33</a> bar"##;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
 fn test_add_clause_links_doesnt_replace_regular_sentence_with_in_see() {
     let source = "Foo in bar, see baz. Qux";
     let expected = r#"Foo in bar, see baz. Qux"#;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
 
 #[test]
 fn test_add_clause_links_doesnt_replace_standalone_number() {
     let source = "Foo 4.5 bar";
     let expected = r#"Foo 4.5 bar"#;
-    assert_eq!(add_clause_references(&source), expected)
+    assert_eq!(add_clause_links(&source), expected)
 }
